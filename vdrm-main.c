@@ -2,11 +2,22 @@
 #include <linux/init.h>
 #include <linux/module.h>
 
-#include "controller.h"
+#include <drm/drm_drv.h>
 
+#include "controller.h"
+#include "vdrm_driver.h"
+
+/*
+static struct drm_driver vdrm_driver = {
+    .ioctls
+};
+*/
+
+struct vdrm_driver *driver;
 struct controller *controller;
 
 static int __init vdrm_init(void) {
+    driver = vdrm_driver_init();
     controller = controller_init();
     if (!controller) {
         return -1;
@@ -18,6 +29,7 @@ static int __init vdrm_init(void) {
 
 static void __exit vdrm_exit(void) {
     controller_clean(controller);
+    vdrm_driver_clean(driver);
 }
 
 
