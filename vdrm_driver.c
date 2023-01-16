@@ -25,6 +25,7 @@ struct drm_driver vdrm_drv = {
 
 
 struct vdrm_driver *vdrm_driver_init(struct device *parent) {
+	int err = 0;
 	struct device *dev;
 	struct vdrm_driver *drv;
 
@@ -32,13 +33,35 @@ struct vdrm_driver *vdrm_driver_init(struct device *parent) {
 	drv = devm_drm_dev_alloc(parent, &vdrm_drv, struct vdrm_driver, drm_dev);
 	if (IS_ERR(drv)) {
 		printk("failed to create vdrm_driver, what: %li\n", PTR_ERR(drv));
-		return NULL;
+		goto exit_init;
 	}
+
 	drv->drm_drv = &vdrm_drv;
-	drv->parent = dev;
+	drv->parent = parent;
+
+	//setting device name
+	err = drm_dev_set_unique(drv->drm_dev, "vtux-gpu");
+	if (err) {
+		printk("failed to set drm device name, what: errno %d\n", err);
+		goto clean_and_exit;
+	}
+
+	//register the drm device to the system and userspace
+	err = drm_dev_register(drv->drm_dev, NULL);
+	if (err) {
+		printk("failed to register drm device, what: errno %d\n", err);
+		goto clean_and_exit;
+	}
+
 	return drv;
+clean_and_exit:
+	kfree(drv);
+exit_init:
+	return NULL;
 }
 
 void vdrm_driver_clean(struct vdrm_driver *drv) {
+	drm_dev_unregister(drv->drm_dev);
+	drm_dev_put(drv->drm_dev);
 	kfree(drv);
 }
