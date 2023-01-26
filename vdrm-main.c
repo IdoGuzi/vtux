@@ -33,6 +33,7 @@ static int __init vdrm_init(void) {
 static void __exit vdrm_exit(void) {
     vdrm_driver_clean(driver);
     controller_clean(controller);
+    printk("vdrm cleanup successful\n");
 }
 
 

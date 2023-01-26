@@ -8,7 +8,7 @@
 
 struct vdrm_driver {
 	struct drm_driver *drm_drv;
-	struct drm_device *drm_dev;
+	struct drm_device drm_dev;
 	struct device *parent; /*dummy device*/
 };
 
