@@ -7,6 +7,7 @@
 #include <drm/drm_device.h>
 
 #include "vdrm_driver.h"
+#include "vdrm_device.h"
 
 
 
@@ -23,6 +24,28 @@ struct drm_driver vdrm_drv = {
 };
 
 
+struct vdrm_driver *vdrm_driver_init(struct device *parent) {
+	struct vdrm_driver *drv;
+
+	drv = kzalloc(sizeof(struct vdrm_driver), GFP_KERNEL);
+	if (IS_ERR(drv)) {
+		printk("failed to allocate memory for vdrm driver, what: %li\n", PTR_ERR(drv));
+		return NULL;
+	}
+
+	drv->drm_drv = &vdrm_drv;
+	drv->parent = parent;
+
+	drv->drm_dev = vdrm_device_init(drv->drm_drv, drv->parent);
+	if (!drv->drm_dev) {
+		printk("failed to initialize vdrm device container\n");
+		kfree(drv);
+		return NULL;
+	}
+
+	return drv;
+}
+/*
 struct vdrm_driver *vdrm_driver_init(struct device *parent) {
 	int err = 0;
 	//struct device *dev;
@@ -61,8 +84,8 @@ exit_init:
 	return NULL;
 }
 
+*/
 void vdrm_driver_clean(struct vdrm_driver *drv) {
-	drm_dev_unregister(&drv->drm_dev);
-	drm_dev_put(&drv->drm_dev);
-	//no need to kfree the driver, the allocation has auto cleanup with devres
+	vdrm_device_clean(drv->drm_dev);
+	kfree(drv);
 }

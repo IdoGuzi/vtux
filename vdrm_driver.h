@@ -6,9 +6,11 @@
 #include <drm/drm_drv.h>
 #include <drm/drm_device.h>
 
+#include "vdrm_device.h"
+
 struct vdrm_driver {
 	struct drm_driver *drm_drv;
-	struct drm_device drm_dev;
+	struct vdrm_device *drm_dev;
 	struct device *parent; /*dummy device*/
 };
 
