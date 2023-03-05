@@ -1,4 +1,5 @@
 #include <linux/fs.h>
+#include <linux/wait.h>
 #include <linux/slab.h>
 #include <linux/cdev.h>
 #include <linux/device.h>
@@ -6,26 +7,37 @@
 
 #include "controller.h"
 
+#define NAME "vtux"
+
+#define BASE_MINOR 0
+#define MINOR_COUNT 1
+
+#define printv(s, ...) printk("%s: %s", NAME, s, ##__VA_ARGS__)
+
 static int controller_open(struct inode *inode, struct file *file) {
     struct controller *con;
     con = container_of(inode->i_cdev, struct controller, cdev);
     file->private_data = con;
-    printk("open\n");
+    printv("open\n");
     return 0;
 }
 
 static int controller_release(struct inode *inode, struct file *file) {
-    printk("release\n");
+    printv("release\n");
     return 0;
 }
 
 static ssize_t controller_read(struct file *file, char __user *user, size_t size, loff_t * offset) {
-    printk("read\n");
+    struct controller *con = file->private_data;
+    struct vdrm_ioctl ctl;
+    printv("read\n");
+    wait_event(con->wq, )
+
     return 0;
 }
 
 static ssize_t controller_write(struct file *file, const char __user *user, size_t size, loff_t *offset) {
-    printk("write\n");
+    printv("write\n");
     return 0;
 }
 
@@ -47,42 +59,44 @@ struct controller *controller_init(void) {
     struct controller *con;
     con = (struct controller *)kzalloc(sizeof(struct controller), GFP_KERNEL);
     if (!con) {
-        printk("failed to allocate controller\n");
-        return NULL;
+        printv("failed to allocate controller\n");
+        goto controller_alloc;
     }
-    err = alloc_chrdev_region(&con->version, 0, 1, "vtux");
+    err = alloc_chrdev_region(&con->version, BASE_MINOR, MINOR_COUNT, NAME);
     if (err) {
-        printk("failed to register char dev region\n");
-        kfree(con);
-        return NULL;
+        printv("failed to register char dev region\n");
+        goto region_error;
     }
     cdev_init(&con->cdev, &controller_ops);
     err = cdev_add(&con->cdev, con->version, 1);
     if (err) {
-        printk("failed to add char device\n");
-        unregister_chrdev_region(con->version, 1);
-        kfree(con);
-        return NULL;
+        printv("failed to add char device\n");
+        goto chr_dev_add_error;
     }
-    con->class = class_create(THIS_MODULE, "vtux");
+    con->class = class_create(THIS_MODULE, NAME);
     if (IS_ERR(con->class)) {
-        printk("failed to create class\n");
-        cdev_del(&con->cdev);
-        unregister_chrdev_region(con->version, 1);
-        kfree(con);
-        return NULL;
+        printv("failed to create class\n");
+        goto class_creation_error;
     }
     con->class->dev_uevent = controller_dev_uevent;
     con->dev = device_create(con->class, NULL, con->version, NULL, "vtux");
     if (IS_ERR(con->dev)) {
-        printk("failed to create class device\n");
-        class_destroy(con->class);
-        cdev_del(&con->cdev);
-        unregister_chrdev_region(con->version, 1);
-        kfree(con);
-        return NULL;
+        printv("failed to create class device\n");
+        goto dev_creation_error;
     }
+    con->dev->p = con;
+    init_waitqueue_head(&con->wq);
     return con;
+dev_creation_error:
+    class_destroy(con->class);
+class_creation_error:
+    cdev_del(&con->cdev);
+chr_dev_add_error:
+    unregister_chrdev_region(con->version, 1);
+region_error:
+    kfree(con);
+controller_alloc:
+    return NULL;
 }
 
 void controller_clean(struct controller *con) {

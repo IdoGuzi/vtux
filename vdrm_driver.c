@@ -9,9 +9,42 @@
 #include "vdrm_driver.h"
 #include "vdrm_device.h"
 
+#include "controller.h"
 
 
-DEFINE_DRM_GEM_FOPS(vdrm_fops);
+long vdrm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
+	//getting drm_device based on how drm_open stored it in drm_file
+	struct drm_file *priv = filp->private_data;
+	struct drm_device *dev = priv->minor->dev;
+	struct vdrm_driver *vdrm = container_of(dev->driver, struct vdrm_driver, drm_drv);
+	struct controller *con = vdrm->parent->p;
+	unsigned int arg_size;
+	char *arg_data;
+
+	//ioctl command number contain the size of argument type
+	arg_size = _IOC_SIZE(cmd);
+	arg_data = kmalloc(arg_size, GFP_KERNEL);
+	if (!arg_data) {
+		return -ENOMEM;
+	}
+	if (copy_from_user(arg_data, (void __user *)arg, arg_size) != 0) {
+		return -EFAULT;
+	}
+
+	return 0;
+}
+
+static const struct file_operations vdrm_fops = {
+	.owner		= THIS_MODULE,
+	.open		= drm_open,
+	.release	= drm_release,
+	.unlocked_ioctl	= vdrm_ioctl,
+	.compat_ioctl	= drm_compat_ioctl,
+	.poll		= drm_poll,
+	.read		= drm_read,
+	.llseek		= noop_llseek,
+	.mmap		= drm_gem_mmap,
+};
 
 struct drm_driver vdrm_drv = {
 	.driver_features = DRIVER_GEM | DRIVER_MODESET | DRIVER_ATOMIC,
