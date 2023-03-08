@@ -6,6 +6,7 @@
 #include <drm/drm_ioctl.h>
 #include <drm/drm_device.h>
 
+#include "vdrm_pipe.h"
 #include "vdrm_driver.h"
 #include "vdrm_device.h"
 
@@ -20,6 +21,7 @@ long vdrm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
 	struct controller *con = vdrm->parent->p;
 	unsigned int arg_size;
 	char *arg_data;
+	int err = 0;
 
 	//ioctl command number contain the size of argument type
 	arg_size = _IOC_SIZE(cmd);
@@ -27,9 +29,17 @@ long vdrm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
 	if (!arg_data) {
 		return -ENOMEM;
 	}
-	if (copy_from_user(arg_data, (void __user *)arg, arg_size) != 0) {
+	err = copy_from_user(arg_data, (void __user *)arg, arg_size);
+	if (err) {
 		return -EFAULT;
 	}
+	err = vdrm_pipe_set_data(con->pipe, arg_data, arg_size)
+	if (err) {
+		return err;
+	}
+
+	
+	
 
 	return 0;
 }

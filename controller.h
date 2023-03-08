@@ -8,12 +8,14 @@
 #include <linux/device.h>
 #include <linux/device/class.h>
 
+#include "vdrm_pipe.h"
+
 struct controller {
     dev_t version;
-    wait_queue_head_t wq;
     struct cdev cdev;
     struct class *class;
     struct device *dev;
+    struct vdrm_pipe *pipe;
 };
 
 struct controller *controller_init(void);

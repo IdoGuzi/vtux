@@ -6,6 +6,7 @@
 #include <linux/spinlock.h>
 
 struct vdrm_pipe {
+	size_t len;
 	void *data;
 	spinlock_t dataLock;
 	wait_queue_head_t producer;
@@ -14,14 +15,9 @@ struct vdrm_pipe {
 
 
 int vdrm_pipe_init(struct vdrm_pipe *pipe);
-void vdrm_pipe_clean(struct vdrm_pipe *pipe, void *data);
-int request_data(struct vdrm_pipe *pipe, void *data, size_t length) {
-	if (waitqueue_active(&pipe->producer)) {
-		wake_up(&pipe->producer);
-	}
-	wait_event(pipe->consumer, spin_trylock(&pipe->dataLock));
-	memcpy(data, pipe->data, length);
-}
+void vdrm_pipe_clean(struct vdrm_pipe *pipe);
+int vdrm_pipe_get_data(struct vdrm_pipe *pipe, void *data);
+int vdrm_pipe_set_data(struct vdrm_pipe *pipe, void *data, size_t len);
 
 
 
