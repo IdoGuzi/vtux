@@ -97,7 +97,7 @@ struct controller *controller_init(void) {
 		printv("failed to create class device\n");
 		goto dev_creation_error;
 	}
-	con->dev->p = (void *)con;
+	dev_set_drvdata(con->dev, con);
 	return con;
 dev_creation_error:
 	class_destroy(con->class);

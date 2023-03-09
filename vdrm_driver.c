@@ -18,7 +18,7 @@ long vdrm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
 	struct drm_file *priv = filp->private_data;
 	struct drm_device *dev = priv->minor->dev;
 	struct vdrm_driver *vdrm = container_of(dev->driver, struct vdrm_driver, drm_drv);
-	struct controller *con = (struct controller *)vdrm->parent->p;
+	struct controller *con = (struct controller *)dev_get_drvdata(vdrm->parent);
 	unsigned int arg_size;
 	char *arg_data;
 	int err = 0;
