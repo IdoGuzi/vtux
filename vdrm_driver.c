@@ -37,10 +37,6 @@ long vdrm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
 	if (err) {
 		return err;
 	}
-
-	
-	
-
 	return 0;
 }
 

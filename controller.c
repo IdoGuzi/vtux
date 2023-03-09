@@ -36,7 +36,9 @@ static ssize_t controller_read(struct file *file, char __user *user, size_t size
 	size_t len;
 	printv("read\n");
 	len = vdrm_pipe_get_data(con->pipe, data);
-
+	if (copy_to_user(user, data, len)) {
+		return -EFAULT;
+	}
 	return 0;
 }
 
