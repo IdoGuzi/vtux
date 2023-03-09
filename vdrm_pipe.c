@@ -26,8 +26,12 @@ int vdrm_pipe_get_data(struct vdrm_pipe *pipe, void *data) {
 		wake_up(&pipe->producer);
 	}
 	wait_event(pipe->consumer, spin_trylock(&pipe->dataLock));
+	if (!pipe->data) {
+		return -EINVAL;
+	}
 	data_size = pipe->len;
 	memcpy(data, pipe->data, data_size);
+	kfree(pipe->data);
 	pipe->data = NULL;
 	pipe->len = 0;
 	spin_unlock(&pipe->dataLock);
