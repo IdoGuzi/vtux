@@ -31,8 +31,7 @@ static int controller_release(struct inode *inode, struct file *file) {
 
 static ssize_t controller_read(struct file *file, char __user *user, size_t size, loff_t * offset) {
 	struct controller *con = file->private_data;
-	struct vdrm_ioctl ctl;
-	char *data;
+	char *data = NULL;
 	size_t len;
 	printv("read\n");
 	len = vdrm_pipe_get_data(con->pipe, data);
@@ -95,7 +94,7 @@ struct controller *controller_init(void) {
 		printv("failed to create class device\n");
 		goto dev_creation_error;
 	}
-	con->dev->p = con;
+	con->dev->p = (void *)con;
 	return con;
 dev_creation_error:
 	class_destroy(con->class);

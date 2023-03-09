@@ -1,15 +1,15 @@
 #include <linux/wait.h>
+#include <linux/sched.h>
 #include <linux/spinlock.h>
 
 #include "vdrm_pipe.h"
 
 int vdrm_pipe_init(struct vdrm_pipe *pipe) {
-	struct vdrm_pipe *pipe;
 	pipe = (struct vdrm_pipe *)kzalloc(sizeof(struct vdrm_pipe), GFP_KERNEL);
 	if (!pipe) {
 		return -ENOMEM;
 	}
-	pipe->data = NULL:
+	pipe->data = NULL;
 	pipe->len = 0;
 	spin_lock_init(&pipe->dataLock);
 	init_waitqueue_head(&pipe->producer);
@@ -17,7 +17,7 @@ int vdrm_pipe_init(struct vdrm_pipe *pipe) {
 	return 0;
 }
 void vdrm_pipe_clean(struct vdrm_pipe *pipe) {
-	kree(pipe);
+	kfree(pipe);
 }
 
 int vdrm_pipe_get_data(struct vdrm_pipe *pipe, void *data) {
@@ -39,13 +39,17 @@ int vdrm_pipe_put_data(struct vdrm_pipe *pipe, void *data, size_t len) {
 	if (!data || !len) {
 		return -EINVAL;
 	}
-	spin_lock(pipe->dataLock);
+	spin_lock(&pipe->dataLock);
 	if (!pipe->data) {
+		pipe->data = (char *)kmalloc(len, GFP_KERNEL);
+		if (!pipe->data) {
+			return -ENOMEM;
+		}
 		memcpy(pipe->data, data, len);
 		pipe->len = len;
 		ret = len;
 	}
-	spin_unlock(pipe->dataLock);
+	spin_unlock(&pipe->dataLock);
 	return ret;
 }
 int vdrm_pipe_set_data(struct vdrm_pipe *pipe, void *data, size_t len) {

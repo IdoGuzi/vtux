@@ -18,7 +18,7 @@ long vdrm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
 	struct drm_file *priv = filp->private_data;
 	struct drm_device *dev = priv->minor->dev;
 	struct vdrm_driver *vdrm = container_of(dev->driver, struct vdrm_driver, drm_drv);
-	struct controller *con = vdrm->parent->p;
+	struct controller *con = (struct controller *)vdrm->parent->p;
 	unsigned int arg_size;
 	char *arg_data;
 	int err = 0;
@@ -33,7 +33,7 @@ long vdrm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
 	if (err) {
 		return -EFAULT;
 	}
-	err = vdrm_pipe_set_data(con->pipe, arg_data, arg_size)
+	err = vdrm_pipe_set_data(con->pipe, arg_data, arg_size);
 	if (err) {
 		return err;
 	}
@@ -72,10 +72,10 @@ struct vdrm_driver *vdrm_driver_init(struct device *parent) {
 		return NULL;
 	}
 
-	drv->drm_drv = &vdrm_drv;
+	drv->drm_drv = vdrm_drv;
 	drv->parent = parent;
 
-	drv->drm_dev = vdrm_device_init(drv->drm_drv, drv->parent);
+	drv->drm_dev = vdrm_device_init(&drv->drm_drv, drv->parent);
 	if (!drv->drm_dev) {
 		printk("failed to initialize vdrm device container\n");
 		kfree(drv);
