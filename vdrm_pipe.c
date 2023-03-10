@@ -3,18 +3,23 @@
 #include <linux/spinlock.h>
 
 #include "vdrm_pipe.h"
+#include "vdrm_print.h"
 
-int vdrm_pipe_init(struct vdrm_pipe *pipe) {
+struct vdrm_pipe *vdrm_pipe_init() {
+	struct vdrm_pipe *pipe;
 	pipe = (struct vdrm_pipe *)kzalloc(sizeof(struct vdrm_pipe), GFP_KERNEL);
 	if (!pipe) {
-		return -ENOMEM;
+		printv("pipe initialization failed, Out of memory\n");
+		goto memory_alloc_error;
 	}
 	pipe->data = NULL;
 	pipe->len = 0;
 	spin_lock_init(&pipe->dataLock);
 	init_waitqueue_head(&pipe->producer);
-	init_waitqueue_head(&pipe->producer);
-	return 0;
+	init_waitqueue_head(&pipe->consumer);
+	return pipe;
+memory_alloc_error:
+	return NULL;
 }
 void vdrm_pipe_clean(struct vdrm_pipe *pipe) {
 	kfree(pipe);

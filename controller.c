@@ -7,14 +7,12 @@
 
 
 #include "vdrm_pipe.h"
+#include "vdrm_print.h"
 #include "controller.h"
 
-#define NAME "vtux"
 
 #define BASE_MINOR 0
 #define MINOR_COUNT 1
-
-#define printv(s, ...) printk("%s: %s", NAME, s, ##__VA_ARGS__)
 
 static int controller_open(struct inode *inode, struct file *file) {
 	struct controller *con;
@@ -70,8 +68,8 @@ struct controller *controller_init(void) {
 		printv("failed to allocate controller\n");
 		goto controller_alloc;
 	}
-	err = vdrm_pipe_init(con->pipe);
-	if (err) {
+	con->pipe = vdrm_pipe_init();
+	if (!con->pipe) {
 		goto pipe_init_error;
 	}
 
