@@ -8,6 +8,7 @@
  * 
  */
 struct vdrm_device {
+	unsigned int dev_id;
 	struct drm_device drm_dev;
 };
 

@@ -8,10 +8,57 @@
 
 #include "vdrm_driver.h"
 #include "vdrm_device.h"
+#include "vdrm_ioctl.h"
+#include "vdrm_print.h"
+#include "vdrm_pipe.h"
+
+#include "controller.h"
 
 
+long vdrm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
+	//getting drm_device based on how drm_open stored it in drm_file
+	struct drm_file *priv = filp->private_data;
+	struct drm_device *dev = priv->minor->dev;
+	struct vdrm_driver *vdrm = container_of(dev->driver, struct vdrm_driver, drm_drv);
+	struct controller *con = (struct controller *)dev_get_drvdata(vdrm->parent);
+	struct ioctl_data *ioctl;
+	unsigned int arg_size;
+	int err = 0;
+	uint8_t ioctl_dir;
 
-DEFINE_DRM_GEM_FOPS(vdrm_fops);
+	//ioctl command number contain the size of argument type
+	arg_size = _IOC_SIZE(cmd);
+	ioctl_dir = _IOC_DIR(cmd);
+	ioctl = ioctl_data_init(0, cmd, arg_size);
+	if (!ioctl) {
+		return -ENOMEM;
+	}
+	if (ioctl_dir & _IOC_WRITE) {
+		err = copy_from_user(ioctl->data, (void __user *)arg, arg_size);
+		if (err) {
+			printv("copy from user error: %d\n", err);
+			return -EFAULT;
+		}
+	}
+	printv("ioctl type: %x, ioctl dir: %d, ioctl data length: %d, ioctl data: %.*s\n", _IOC_TYPE(cmd),ioctl_dir, ioctl->size, ioctl->size, ioctl->data);
+	err = vdrm_pipe_set_data(con->pipe, ioctl, sizeof(struct ioctl_data) + arg_size);
+	if (err) {
+		return err;
+	}
+	return 0;
+}
+
+static const struct file_operations vdrm_fops = {
+	.owner		= THIS_MODULE,
+	.open		= drm_open,
+	.release	= drm_release,
+	.unlocked_ioctl	= vdrm_ioctl,
+	.compat_ioctl	= drm_compat_ioctl,
+	.poll		= drm_poll,
+	.read		= drm_read,
+	.llseek		= noop_llseek,
+	.mmap		= drm_gem_mmap,
+};
 
 struct drm_driver vdrm_drv = {
 	.driver_features = DRIVER_GEM | DRIVER_MODESET | DRIVER_ATOMIC,
@@ -33,10 +80,10 @@ struct vdrm_driver *vdrm_driver_init(struct device *parent) {
 		return NULL;
 	}
 
-	drv->drm_drv = &vdrm_drv;
+	drv->drm_drv = vdrm_drv;
 	drv->parent = parent;
 
-	drv->drm_dev = vdrm_device_init(drv->drm_drv, drv->parent);
+	drv->drm_dev = vdrm_device_init(&drv->drm_drv, drv->parent);
 	if (!drv->drm_dev) {
 		printk("failed to initialize vdrm device container\n");
 		kfree(drv);
