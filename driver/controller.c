@@ -9,7 +9,7 @@
 #include "vdrm_pipe.h"
 #include "vdrm_print.h"
 #include "controller.h"
-
+#include "vdrm_ioctl.h"
 
 #define BASE_MINOR 0
 #define MINOR_COUNT 1
@@ -29,17 +29,23 @@ static int controller_release(struct inode *inode, struct file *file) {
 
 static ssize_t controller_read(struct file *file, char __user *user, size_t size, loff_t * offset) {
 	struct controller *con = file->private_data;
+	struct ioctl_data *ioctl;
 	char *data = NULL;
-	size_t len;
-	printv("read\n");
-	len = vdrm_pipe_get_data(con->pipe, data);
+	int len = 0;
+	printv("read %p\n", data);
+	len = vdrm_pipe_get_data(con->pipe, (void **)&data);
+	printv("read here %p\n", data);
 	if (len < 0) {
 		return -EINVAL;
 	}
+	ioctl = (struct ioctl_data *)data;
+
+	printv("read data to send: id: %u, command: %u, size: %u, data: %s\n", ioctl->id, ioctl->request, ioctl->size, ioctl->data);
 	if (copy_to_user(user, data, len)) {
 		return -EFAULT;
 	}
-	return 0;
+	printv("read nowhere\n");
+	return len;
 }
 
 static ssize_t controller_write(struct file *file, const char __user *user, size_t size, loff_t *offset) {

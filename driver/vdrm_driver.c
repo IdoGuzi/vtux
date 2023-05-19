@@ -6,9 +6,11 @@
 #include <drm/drm_ioctl.h>
 #include <drm/drm_device.h>
 
-#include "vdrm_pipe.h"
 #include "vdrm_driver.h"
 #include "vdrm_device.h"
+#include "vdrm_ioctl.h"
+#include "vdrm_print.h"
+#include "vdrm_pipe.h"
 
 #include "controller.h"
 
@@ -19,21 +21,27 @@ long vdrm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
 	struct drm_device *dev = priv->minor->dev;
 	struct vdrm_driver *vdrm = container_of(dev->driver, struct vdrm_driver, drm_drv);
 	struct controller *con = (struct controller *)dev_get_drvdata(vdrm->parent);
+	struct ioctl_data *ioctl;
 	unsigned int arg_size;
-	char *arg_data;
 	int err = 0;
+	uint8_t ioctl_dir;
 
 	//ioctl command number contain the size of argument type
 	arg_size = _IOC_SIZE(cmd);
-	arg_data = kmalloc(arg_size, GFP_KERNEL);
-	if (!arg_data) {
+	ioctl_dir = _IOC_DIR(cmd);
+	ioctl = ioctl_data_init(0, cmd, arg_size);
+	if (!ioctl) {
 		return -ENOMEM;
 	}
-	err = copy_from_user(arg_data, (void __user *)arg, arg_size);
-	if (err) {
-		return -EFAULT;
+	if (ioctl_dir & _IOC_WRITE) {
+		err = copy_from_user(ioctl->data, (void __user *)arg, arg_size);
+		if (err) {
+			printv("copy from user error: %d\n", err);
+			return -EFAULT;
+		}
 	}
-	err = vdrm_pipe_set_data(con->pipe, arg_data, arg_size);
+	printv("ioctl type: %x, ioctl dir: %d, ioctl data length: %d, ioctl data: %.*s\n", _IOC_TYPE(cmd),ioctl_dir, ioctl->size, ioctl->size, ioctl->data);
+	err = vdrm_pipe_set_data(con->pipe, ioctl, sizeof(struct ioctl_data) + arg_size);
 	if (err) {
 		return err;
 	}

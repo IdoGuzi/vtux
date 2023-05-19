@@ -7,6 +7,4 @@ make
 sleep 2s #sleep so ko will finish compiling
 insmod vdrm.ko
 sleep 2s
-dmesg -c > "$(date +"%H:%M")"
-sleep 10s
-reboot
+dmesg -c >> "$(date +"%H:%M")"

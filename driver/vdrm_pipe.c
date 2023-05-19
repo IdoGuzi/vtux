@@ -25,17 +25,25 @@ void vdrm_pipe_clean(struct vdrm_pipe *pipe) {
 	kfree(pipe);
 }
 
-int vdrm_pipe_get_data(struct vdrm_pipe *pipe, void *data) {
+int vdrm_pipe_get_data(struct vdrm_pipe *pipe, void **data) {
 	size_t data_size;
 	if (waitqueue_active(&pipe->producer)) {
 		wake_up(&pipe->producer);
 	}
+	printk("vtux: get data from pipe, before sleep\n");
 	wait_event(pipe->consumer, spin_trylock(&pipe->dataLock));
 	if (!pipe->data) {
 		return -EINVAL;
 	}
+	printk("vtux: data address before allocation: %p\n", (*data));
+	(*data) = kzalloc(pipe->len, GFP_KERNEL);
+	if (!(*data)) {
+		spin_unlock(&pipe->dataLock);
+		return -ENOMEM;
+	}
+	printk("vtux: data address after allocation: %p\n", (*data));
 	data_size = pipe->len;
-	memcpy(data, pipe->data, data_size);
+	memcpy((*data), pipe->data, data_size);
 	kfree(pipe->data);
 	pipe->data = NULL;
 	pipe->len = 0;

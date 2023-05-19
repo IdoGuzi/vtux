@@ -16,7 +16,7 @@ struct vdrm_pipe {
 
 struct vdrm_pipe *vdrm_pipe_init(void);
 void vdrm_pipe_clean(struct vdrm_pipe *pipe);
-int vdrm_pipe_get_data(struct vdrm_pipe *pipe, void *data);
+int vdrm_pipe_get_data(struct vdrm_pipe *pipe, void **data);
 int vdrm_pipe_set_data(struct vdrm_pipe *pipe, void *data, size_t len);
 
 
