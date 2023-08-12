@@ -5,7 +5,9 @@
 
 #define DATA_SIZE 16384 //2^14
 
-
+/**
+ * container struct for an ioctl message for communication
+ */
 struct ioctl_data {
 	unsigned int id;
 	unsigned int request;
@@ -13,6 +15,12 @@ struct ioctl_data {
 	char data[];
 };
 
+/**
+ * initialize an ioctl data container
+ * id - id of the message
+ * request - request type
+ * size - data size in bytes
+ */
 struct ioctl_data *ioctl_data_init(unsigned int id, unsigned int request, uint16_t size);
 
 
