@@ -10,6 +10,10 @@
 
 #include "vdrm_pipe.h"
 
+
+/**
+* controller is a char device for managing drm device communication to allow ioctl passthrough
+*/
 struct controller {
     dev_t version;
     struct cdev cdev;
@@ -18,8 +22,17 @@ struct controller {
     struct vdrm_pipe *pipe;
 };
 
+
+/**
+* intialize a controller struct and create a char device and register it to the system
+*/
 struct controller *controller_init(void);
 
+
+/**
+* delete the char device from the system and clean allocated memory
+* con - controller to clean
+*/
 void controller_clean(struct controller *con);
 
 #endif
