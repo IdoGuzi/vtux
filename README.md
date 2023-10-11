@@ -1,6 +1,6 @@
 # Vtux 0.0.2
 
-Vtux is a program that allows a computer to loan and lend a graphics card from/to another computer.
+Vtux is a program that allows a computer to rent and lend a graphics card from/to another computer.
 
 ## TODO for 0.1.0
     * Get Client to work on VM (currenly only works on real hardware)
