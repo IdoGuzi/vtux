@@ -7,6 +7,7 @@
 
 
 struct ioctl_data {
+	int dev_id;
 	unsigned int id;
 	unsigned int request;
 	uint16_t size;
