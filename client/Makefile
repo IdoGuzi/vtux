@@ -8,10 +8,15 @@ XFLAGS=-lX11 -lxcb -lxcb-randr
 DRMFLAGS=-ldrm -I/usr/include/libdrm
 DRM_INC=-I/usr/include/libdrm
 DRM_LIB=-ldrm
+INCDIR:=-I$(PWD)/../common
+LIBDIR:=-L$(PWD)/../lib
 
 
-vtux: main.c
-	$(CC) $(CFLAGS) $(DRM_INC) -o vtux main.c $(DRM_LIB)
+vtux: main.c client.o
+	$(CC) $(CFLAGS) $(DRM_INC) -o vtux $(OOBJ)/*.o main.c $(DRM_LIB)
+
+client.o: $(OOBJ) client.c client.h
+	$(CC) $(CFLAGS) -c client.c -o $(OOBJ)/client.o $(INCDIR)
 
 #vtux: main.o libx.so
 #	$(CC) $(CFLAGS) -o vtux $(OOBJ)/main.o ./$(OLIB)/libx.so
@@ -27,6 +32,11 @@ vtux: main.c
 #
 #out:
 #	mkdir -p $(OLIB) $(OOBJ)
+
+$(OOBJ):
+	mkdir -p $(OOBJ)
+
+.PHONY: clean
 
 clean:
 	rm -rf $(OLIB) $(OOBJ) vtux
