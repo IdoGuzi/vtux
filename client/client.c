@@ -12,8 +12,8 @@
 #include <arpa/inet.h>
 
 
-int sendToServer(struct Client *client, struct ioctl_data data) {
-	int err = send(client->sock_fd, (void*)&data, sizeof(struct ioctl_data) + data.size, NULL);
+int sendToServer(struct Client *client, struct ioctl_data *data) {
+	int err = send(client->sock_fd, (void*)data, sizeof(struct ioctl_data) + data->size, 0);
 	if (err < 0) {
 		err = errno;
 		printf("failed to send data to server, what: %s\n", strerror(err));
@@ -22,11 +22,11 @@ int sendToServer(struct Client *client, struct ioctl_data data) {
 	return 0;
 }
 
-int reciveFromServer(struct Client *client, void *data) {
-	int err = recv(client->sock_fd, data, sizeof(data), NULL);
+int receiveFromServer(struct Client *client, void *data, size_t size) {
+	int err = recv(client->sock_fd, data, sizeof(size), 0);
 	if (err < 0) {
 		err = errno;
-		printf("failed to recive data from server, what: %s\n", strerror(err));
+		printf("failed to receive data from server, what: %s\n", strerror(err));
 		return err;
 	}
 	return 0;
@@ -56,7 +56,7 @@ struct Client* createClient() {
 		return NULL;
 	}
 	client->connect = connectToServer;
-	client->recive = reciveFromServer;
+	client->receive = receiveFromServer;
 	client->send = sendToServer;
 	return client;
 }

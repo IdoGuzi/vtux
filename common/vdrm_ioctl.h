@@ -7,14 +7,14 @@
 
 
 struct ioctl_data {
-	int dev_id;
 	unsigned int id;
+	unsigned int dev_id;
 	unsigned int request;
 	uint16_t size;
 	char data[];
 };
 
-struct ioctl_data *ioctl_data_init(unsigned int id, unsigned int request, uint16_t size);
+struct ioctl_data *ioctl_data_init(unsigned int dev_id, unsigned int id, unsigned int request, uint16_t size);
 
 
 

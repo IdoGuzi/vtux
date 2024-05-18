@@ -1,6 +1,8 @@
 #include "server.h"
 
 #include <pthread.h>
+#include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <features.h>
 #include <signal.h>
@@ -36,17 +38,21 @@ void connectionListener(struct Server *server) {
 			printf("failed to accept connection\n");
 			continue;
 		}
+		printf("new client connected with fd %d\n", conn_fd);
 		struct Connection conn = {
 			.fd = conn_fd,
 			.address = new_connection
 		};
+		printf("setting connection info in server\n");
 		server->connections[server->connection_number] = conn;
+		printf("connection info set\n");
 		server->connection_number++;
 		pthread_t thread;
 		struct CompactHandlerData chd = {
 			.server=server,
 			.conn=conn
 		};
+		printf("starting client %d handler\n", conn_fd);
 		pthread_create(&thread, NULL, handle_connection, (void*)&chd);
 	}
 }
@@ -94,7 +100,7 @@ void* handle_connection(void *data) {
 	struct CompactHandlerData *chd = (struct CompactHandlerData*)data;
 	struct Server *server = chd->server;
 	int conn_fd = (chd->conn.fd);
-	char buf[1024] = {0};
+	char buf[2048] = {0};
 	int server_status;
 	while (1) {
 		pthread_spin_lock(&server->lock);
@@ -103,8 +109,16 @@ void* handle_connection(void *data) {
 		if (!server_status) {
 			break;
 		}
-		int err = recv(conn_fd, buf, 1024, 0);
-		if (err) {
+		int err = recv(conn_fd, buf, 2048, 0);
+		if (err < 0) {
+			printf("failed to read from client, closing connection, what: %s\n", strerror(errno));
+			continue;
+			close(conn_fd);
+			return NULL;
+		}
+		err = server->processor(server, conn_fd, buf, err);
+		if (err < 0) {
+			printf("failed to write to client, closing connection, what: %s\n", strerror(errno));
 			close(conn_fd);
 			return NULL;
 		}
@@ -115,14 +129,16 @@ void* handle_connection(void *data) {
 
 
 
-struct Server* createServer() {
+struct Server* createServer(int (*processor)(struct Server *server, int sender_fd, void *data, size_t size)) {
 	struct Server *server = malloc(sizeof(struct Server));
 	server->server_status = 0;
 	server->connection_number = 0;
+	server->connections = (struct Connection*)malloc(sizeof(struct Connection)*MAX_CONNECTIONS);
 	server->start = startServer;
 	server->stop = stopServer;
 	server->sender = send_to_connection;
 	server->handler = handle_connection;
+	server->processor = processor;
 	if (pthread_spin_init(&server->lock, PTHREAD_PROCESS_PRIVATE) != 0) {
 		free(server);
 		return NULL;

@@ -10,10 +10,12 @@ DRM_INC=-I/usr/include/libdrm
 DRM_LIB=-ldrm
 INCDIR:=-I$(PWD)/../common
 LIBDIR:=-L$(PWD)/../lib
+INCLUDE:=$(INCDIR) $(DRM_INC)
+LIBS:=$(LIBDIR) -lcommon $(DRM_LIB)
 
 
 vtux: main.c client.o
-	$(CC) $(CFLAGS) $(DRM_INC) -o vtux $(OOBJ)/*.o main.c $(DRM_LIB)
+	$(CC) $(CFLAGS) $(INCLUDE) -o vtux $(OOBJ)/*.o main.c $(LIBS)
 
 client.o: $(OOBJ) client.c client.h
 	$(CC) $(CFLAGS) -c client.c -o $(OOBJ)/client.o $(INCDIR)

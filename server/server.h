@@ -6,6 +6,7 @@
 
 #include <pthread.h>
 #include <netinet/in.h>
+#include <sched.h>
 
 #define MAX_CONNECTIONS 64
 
@@ -24,10 +25,11 @@ struct Server {
 	int (*start)(struct Server *server);
 	int (*stop)(struct Server *server);
 	int (*sender)(struct Server *server, int fd, struct ioctl_data data);
+	int (*processor)(struct Server *server, int sender_fd, void *data, size_t size);
 	void* (*handler)(void *data);
 };
 
-struct Server* createServer();
+struct Server* createServer(int (*processor)(struct Server *server, int sender_fd, void *data, size_t size));
 void destroyServer(struct Server *server);
 
 void start();

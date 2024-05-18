@@ -1,10 +1,10 @@
+#include <sched.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include <math.h>
 
 #include <sys/ioctl.h>
 
@@ -16,8 +16,33 @@
 
 const char path[] = "/dev/vtux";
 
+int processData(struct Server *server, int sender_fd, void *data, size_t size) {
+	struct ioctl_data *ioctl = (struct ioctl_data*)data;
+	printf("ioctl dev id: %d, ioctl id: %d\n", ioctl->dev_id, ioctl->id);
+	printf("ioctl command: 0x%x/ %u\n", ioctl->request, ioctl->request);
+	printf("ioctl arg size: %d\n", ioctl->size);
+	printf("ioctl data: %s\n", ioctl->data);
+	int err = server->sender(server, sender_fd, *ioctl);
+	return err;
+}
+
 int main() {
-	struct Server *server = createServer();
+	struct Server *server = createServer(processData);
+	int err = server->start(server);
+	if (err) {
+		printf("failed to start up server, what: %d\n", err);
+		destroyServer(server);
+		return EXIT_FAILURE;
+	}
+	printf("server started\n");
+	sleep(20);
+	server->stop(server);
+	destroyServer(server);
+	return EXIT_SUCCESS;
+}
+
+int main2() {
+	struct Server *server = createServer(processData);
 	int err = server->start(server);
 	if (err) {
 		printf("failed to start up server, what: %d\n", err);
