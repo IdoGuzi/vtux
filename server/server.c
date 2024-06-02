@@ -1,6 +1,8 @@
 #include "server.h"
+#include "vdrm_ioctl.h"
 
 #include <pthread.h>
+#include <sched.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -77,7 +79,7 @@ int stopServer(struct Server *server) {
 }
 
 
-int send_to_connection(struct Server *server, int fd, struct ioctl_data data) {
+int send_to_connection(struct Server *server, int fd, struct ioctl_data *data, size_t size) {
 	int found = 0;
 	for (int i=0; i<server->connection_number; i++) {
 		if (server->connections[i].fd == fd) {
@@ -88,7 +90,14 @@ int send_to_connection(struct Server *server, int fd, struct ioctl_data data) {
 	if (!found) {
 		return -EBADF;
 	}
-	int err = send(fd, (void*)&data, sizeof(struct ioctl_data)+data.size, 0);
+	printf("*****************\n");
+	printf("sending:\n");
+	printf("*****************\n");
+	printf("ioctl dev id: %d, ioctl id: %d\n", data->dev_id, data->id);
+	printf("ioctl command: 0x%x/ %u\n", data->request, data->request);
+	printf("ioctl arg size: %d\n", data->size);
+	printf("ioctl data: %s\n", data->data);
+	int err = send(fd, (void*)data, IOCTL_DATA_BASE_SIZE+data->size, 0);
 	if (err) {
 		err = errno;
 		return -err;
@@ -100,7 +109,9 @@ void* handle_connection(void *data) {
 	struct CompactHandlerData *chd = (struct CompactHandlerData*)data;
 	struct Server *server = chd->server;
 	int conn_fd = (chd->conn.fd);
-	char buf[2048] = {0};
+	//size_t buf_size = sizeof(struct ioctl_data)+16384;
+	#define BUF_SIZE IOCTL_DATA_BASE_SIZE+16384
+	char buf[BUF_SIZE] = {0};
 	int server_status;
 	while (1) {
 		pthread_spin_lock(&server->lock);
@@ -109,7 +120,7 @@ void* handle_connection(void *data) {
 		if (!server_status) {
 			break;
 		}
-		int err = recv(conn_fd, buf, 2048, 0);
+		int err = recv(conn_fd, buf, BUF_SIZE, 0);
 		if (err < 0) {
 			printf("failed to read from client, closing connection, what: %s\n", strerror(errno));
 			continue;
@@ -119,6 +130,7 @@ void* handle_connection(void *data) {
 		err = server->processor(server, conn_fd, buf, err);
 		if (err < 0) {
 			printf("failed to write to client, closing connection, what: %s\n", strerror(errno));
+			continue;
 			close(conn_fd);
 			return NULL;
 		}

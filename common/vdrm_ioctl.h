@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #define DATA_SIZE 16384 //2^14
+#define IOCTL_DATA_BASE_SIZE 14
 
 
 struct ioctl_data {

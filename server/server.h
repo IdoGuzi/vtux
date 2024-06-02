@@ -24,7 +24,7 @@ struct Server {
 	struct Connection *connections;
 	int (*start)(struct Server *server);
 	int (*stop)(struct Server *server);
-	int (*sender)(struct Server *server, int fd, struct ioctl_data data);
+	int (*sender)(struct Server *server, int fd, struct ioctl_data *data, size_t size);
 	int (*processor)(struct Server *server, int sender_fd, void *data, size_t size);
 	void* (*handler)(void *data);
 };

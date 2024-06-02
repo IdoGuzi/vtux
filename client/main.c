@@ -25,31 +25,33 @@ int main(int argc, char *argv[]) {
 	struct ioctl_data *resp = ioctl_data_init(0, 0, 0, DATA_SIZE);
 	int index = 0;
 	while (1) {
-		nanosleep((const struct timespec[]){{0,10000}}, NULL);
+		nanosleep((const struct timespec[]){{0,100000}}, NULL);
 		char str[1024];
 		sprintf(str, "test number %d", index);
 		struct ioctl_data *data = ioctl_data_init(0, index, 123, strlen(str));
 		strncpy(data->data, str, data->size);
+		/*
 		printf("ioctl dev id: %d, ioctl id: %d\n", data->dev_id, data->id);
 		printf("ioctl command: 0x%x/ %u\n", data->request, data->request);
 		printf("ioctl arg size: %d\n", data->size);
 		printf("ioctl data: %s\n", data->data);
+		*/
 		err = client->send(client, data);
 		free(data);
 		if (err) {
 			goto failedSend;
 		}
 		printf("sent to server\n");
-		err = client->receive(client, (void*)resp, sizeof(struct ioctl_data)+DATA_SIZE);
-		if (err) {
+		memset(resp, 0, IOCTL_DATA_BASE_SIZE+DATA_SIZE);
+		err = client->receive(client, (void*)resp, IOCTL_DATA_BASE_SIZE+DATA_SIZE);
+		if (err < 0) {
 			goto failedReceive;
 		}
-		/*
+		printf("received %d bytes\n", err);
 		printf("ioctl dev id: %d, ioctl id: %d\n", resp->dev_id, resp->id);
 		printf("ioctl command: 0x%x/ %u\n", resp->request, resp->request);
 		printf("ioctl arg size: %d\n", resp->size);
 		printf("ioctl data: %s\n", resp->data);
-		*/
 		index++;
 	}
 failedReceive:

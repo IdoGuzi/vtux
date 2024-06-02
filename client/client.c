@@ -2,6 +2,7 @@
 #include "vdrm_ioctl.h"
 
 #include <errno.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,7 +14,7 @@
 
 
 int sendToServer(struct Client *client, struct ioctl_data *data) {
-	int err = send(client->sock_fd, (void*)data, sizeof(struct ioctl_data) + data->size, 0);
+	int err = send(client->sock_fd, (void*)data, IOCTL_DATA_BASE_SIZE + data->size, 0);
 	if (err < 0) {
 		err = errno;
 		printf("failed to send data to server, what: %s\n", strerror(err));
@@ -23,13 +24,27 @@ int sendToServer(struct Client *client, struct ioctl_data *data) {
 }
 
 int receiveFromServer(struct Client *client, void *data, size_t size) {
-	int err = recv(client->sock_fd, data, sizeof(size), 0);
-	if (err < 0) {
-		err = errno;
-		printf("failed to receive data from server, what: %s\n", strerror(err));
-		return err;
+	int received = 0;
+	while (received < IOCTL_DATA_BASE_SIZE) {
+		int err = recv(client->sock_fd, data, IOCTL_DATA_BASE_SIZE-received, 0);
+		if (err < 0) {
+			err = errno;
+			printf("failed to receive data from server, what: %s\n", strerror(err));
+			return -err;
+		}
+		received += err;
 	}
-	return 0;
+	struct ioctl_data *ioctl = (struct ioctl_data*)data;
+	while (received < IOCTL_DATA_BASE_SIZE + ioctl->size) {
+		int err = recv(client->sock_fd, ioctl->data, (IOCTL_DATA_BASE_SIZE+ioctl->size)-received, 0);
+		if (err < 0) {
+			err = errno;
+			printf("failed to receive data from server, what: %s\n", strerror(err));
+			return -err;
+		}
+		received += err;
+	}
+	return received;
 }
 
 int connectToServer(struct Client *client, char *ip, int port) {

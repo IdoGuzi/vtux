@@ -12,17 +12,20 @@
 
 #include "server.h"
 
-#define BUFFER_SIZE 16384+sizeof(struct ioctl_data) //2^14
+#define BUFFER_SIZE 16384+IOCTL_DATA_BASE_SIZE //2^14
 
 const char path[] = "/dev/vtux";
 
 int processData(struct Server *server, int sender_fd, void *data, size_t size) {
 	struct ioctl_data *ioctl = (struct ioctl_data*)data;
+	if (size != IOCTL_DATA_BASE_SIZE+ioctl->size) {
+		printf("received ioctl size: %ld, expected size: %d\n", size, IOCTL_DATA_BASE_SIZE+ioctl->size);
+	}
 	printf("ioctl dev id: %d, ioctl id: %d\n", ioctl->dev_id, ioctl->id);
 	printf("ioctl command: 0x%x/ %u\n", ioctl->request, ioctl->request);
 	printf("ioctl arg size: %d\n", ioctl->size);
 	printf("ioctl data: %s\n", ioctl->data);
-	int err = server->sender(server, sender_fd, *ioctl);
+	int err = server->sender(server, sender_fd, ioctl, size);
 	return err;
 }
 
@@ -79,7 +82,7 @@ int main2() {
 		ioctl = (struct ioctl_data*) buf;
 		printf("ioctl command: 0x%x/ %u\n", ioctl->request, ioctl->request);
 		printf("ioctl arg size: %d\n", ioctl->size);
-		err = server->sender(server, ioctl->dev_id, *ioctl);
+		err = server->sender(server, ioctl->dev_id, ioctl, IOCTL_DATA_BASE_SIZE+ioctl->size);
 		if (err) {
 			printf("failed to send data to client, what: %s\n", strerror(-err));
 			break;
